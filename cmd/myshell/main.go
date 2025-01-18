@@ -3,12 +3,29 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"log/slog"
 	"os"
+	"strings"
 )
 
 func main() {
 	fmt.Fprint(os.Stdout, "$ ")
 
-	// Wait for user input
-	bufio.NewReader(os.Stdin).ReadString('\n')
+	input, err := bufio.NewReader(os.Stdin).ReadString('\n')
+
+	if err != nil {
+		slog.Error("Cannot read input", slog.Any("err", err))
+		os.Exit(1)
+	}
+
+	command := strings.TrimSpace(input)
+
+	switch command {
+	default:
+		{
+			fmt.Fprintf(os.Stdout, "%s: command not found\r\n", command)
+			os.Exit(1)
+		}
+	}
+
 }
