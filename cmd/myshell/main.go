@@ -4,9 +4,14 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 )
+
+var builtins []string = []string{
+	"exit", "echo", "type",
+}
 
 type Cmd struct {
 	Key  string
@@ -63,6 +68,17 @@ func main() {
 		case "echo":
 			{
 				fmt.Fprint(os.Stdout, strings.Join(command.Args, " "), "\r\n")
+			}
+		case "type":
+			{
+				for _, arg := range command.Args {
+					if slices.Contains(builtins, arg) {
+						fmt.Fprintf(os.Stdout, "%s is a shell builtin\r\n", arg)
+					} else {
+						fmt.Fprintf(os.Stdout, "%s: not found\r\n", arg)
+					}
+				}
+
 			}
 		default:
 			{
