@@ -3,29 +3,66 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"log/slog"
 	"os"
+	"strconv"
 	"strings"
 )
+
+type Cmd struct {
+	Key  string
+	Args []string
+}
+
+func toCmd(in string) (Cmd, error) {
+	data := strings.Split(in, " ")
+	if len(data) == 0 {
+		return Cmd{Key: in}, nil
+	}
+
+	return Cmd{
+		Key:  data[0],
+		Args: data[1:],
+	}, nil
+}
 
 func main() {
 
 	for {
-		fmt.Fprint(os.Stdout, "$ ")
-
-		input, err := bufio.NewReader(os.Stdin).ReadString('\n')
-
-		if err != nil {
-			slog.Error("Cannot read input", slog.Any("err", err))
-			os.Exit(1)
+		if _, err := fmt.Fprint(os.Stdout, "$ "); err != nil {
+			fmt.Fprintf(os.Stdout, "write error: %v\r\n", err)
+			continue
 		}
 
-		command := strings.TrimSpace(input)
+		input, err := bufio.NewReader(os.Stdin).ReadString('\n')
+		if err != nil {
+			fmt.Fprintf(os.Stdout, "cannot read input: %v\r\n", err)
+			continue
+		}
 
-		switch command {
+		command, err := toCmd(strings.TrimSpace(input))
+		if err != nil {
+			fmt.Fprintf(os.Stdout, "invalid command: %v\r\n", err)
+			continue
+		}
+
+		switch command.Key {
+		case "exit":
+			{
+				if len(command.Args) == 0 {
+					continue
+				}
+
+				exitCode, err := strconv.Atoi(command.Args[0])
+				if err != nil {
+					fmt.Fprintf(os.Stdout, "invalid exit code value: %s\r\n", command.Args[0])
+					continue
+				}
+
+				os.Exit(exitCode)
+			}
 		default:
 			{
-				fmt.Fprintf(os.Stdout, "%s: command not found\r\n", command)
+				fmt.Fprintf(os.Stdout, "%s: command not found\r\n", command.Key)
 			}
 		}
 	}
