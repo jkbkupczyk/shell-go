@@ -60,6 +60,10 @@ func main() {
 
 				os.Exit(exitCode)
 			}
+		case "echo":
+			{
+				fmt.Fprint(os.Stdout, strings.Join(command.Args, " "), "\r\n")
+			}
 		default:
 			{
 				fmt.Fprintf(os.Stdout, "%s: command not found\r\n", command.Key)
