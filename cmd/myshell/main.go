@@ -9,22 +9,24 @@ import (
 )
 
 func main() {
-	fmt.Fprint(os.Stdout, "$ ")
 
-	input, err := bufio.NewReader(os.Stdin).ReadString('\n')
+	for {
+		fmt.Fprint(os.Stdout, "$ ")
 
-	if err != nil {
-		slog.Error("Cannot read input", slog.Any("err", err))
-		os.Exit(1)
-	}
+		input, err := bufio.NewReader(os.Stdin).ReadString('\n')
 
-	command := strings.TrimSpace(input)
-
-	switch command {
-	default:
-		{
-			fmt.Fprintf(os.Stdout, "%s: command not found\r\n", command)
+		if err != nil {
+			slog.Error("Cannot read input", slog.Any("err", err))
 			os.Exit(1)
+		}
+
+		command := strings.TrimSpace(input)
+
+		switch command {
+		default:
+			{
+				fmt.Fprintf(os.Stdout, "%s: command not found\r\n", command)
+			}
 		}
 	}
 
