@@ -73,63 +73,55 @@ func main() {
 
 				if IsBuiltIn(arg) {
 					fmt.Fprintf(os.Stdout, "%s is a shell builtin\r\n", arg)
-				} else {
-					if !pathExists {
-						fmt.Fprintf(os.Stdout, "%s: not found\r\n", arg)
-						continue
-					}
-
-					var found bool
-					for _, p := range osPaths {
-						files, _ := os.ReadDir(p)
-						if len(files) == 0 {
-							continue
-						}
-
-						for _, f := range files {
-							if !f.IsDir() && f.Name() == arg {
-								fmt.Fprintf(os.Stdout, "%s is %s\r\n", arg, filepath.Join(p, f.Name()))
-								found = true
-								break
-							}
-						}
-					}
-
-					if !found {
-						fmt.Fprintf(os.Stdout, "%s: not found\r\n", arg)
-					}
-				}
-			}
-		default:
-			fileName := command.Key
-
-			var found bool
-			for _, p := range osPaths {
-				files, _ := os.ReadDir(p)
-				if len(files) == 0 {
 					continue
 				}
 
-				for _, f := range files {
-					if !f.IsDir() && f.Name() == fileName {
-						fullPath := filepath.Join(p, f.Name())
-						out, err := exec.Command(fileName, command.Args...).Output()
-						if err != nil {
-							fmt.Fprintf(os.Stdout, "Could not execute command %s: %v\r\n", fullPath, err)
-							continue
-						}
-						found = true
-						fmt.Fprint(os.Stdout, string(out), "\r\n")
-						break
-					}
+				if !pathExists {
+					fmt.Fprintf(os.Stdout, "%s: not found\r\n", arg)
+					continue
 				}
+
+				filePath := findFile(arg, osPaths)
+				if filePath == "" {
+					fmt.Fprintf(os.Stdout, "%s: not found\r\n", arg)
+					continue
+				}
+
+				fmt.Fprintf(os.Stdout, "%s is %s\r\n", arg, filePath)
+			}
+		default:
+			filePath := findFile(command.Key, osPaths)
+			if filePath == "" {
+				fmt.Fprintf(os.Stdout, "%s: command not found\r\n", command.Key)
+				continue
 			}
 
-			if !found {
-				fmt.Fprintf(os.Stdout, "%s: command not found\r\n", command.Key)
+			out, err := exec.Command(command.Key, command.Args...).Output()
+			if err != nil {
+				fmt.Fprintf(os.Stdout, "could not execute command %s: %v\r\n", filePath, err)
+				continue
+			}
+
+			fmt.Fprint(os.Stdout, string(out), "\r\n")
+		}
+	}
+}
+
+func findFile(fileName string, paths []string) string {
+	for _, p := range paths {
+		files, _ := os.ReadDir(p)
+		if len(files) == 0 {
+			continue
+		}
+
+		for _, f := range files {
+			if !f.IsDir() && f.Name() == fileName {
+				return filepath.Join(p, f.Name())
 			}
 		}
 	}
+
+	return ""
 }
 
 func fileType(command, path string) FileType {
