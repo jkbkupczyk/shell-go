@@ -91,13 +91,13 @@ func main() {
 			}
 		case CmdPwd:
 			{
-				ex, err := os.Executable()
+				wd, err := os.Getwd()
 				if err != nil {
 					fmt.Fprintf(os.Stdout, "could not get working dir: %v", err)
 					continue
 				}
 
-				fmt.Fprint(os.Stdout, filepath.Dir(ex), "\r\n")
+				fmt.Fprintln(os.Stdout, filepath.Dir(wd))
 			}
 		default:
 			filePath := findFile(command.Key, osPaths)
