@@ -113,9 +113,9 @@ func main() {
 				for _, f := range files {
 					if !f.IsDir() && f.Name() == fileName {
 						fullPath := filepath.Join(p, f.Name())
-						out, err := exec.Command(fullPath, command.Args...).Output()
+						out, err := exec.Command(fileName, command.Args...).Output()
 						if err != nil {
-							fmt.Fprintf(os.Stdout, "Could not execute command %s: %v\r\n", fileName, err)
+							fmt.Fprintf(os.Stdout, "Could not execute command %s: %v\r\n", fullPath, err)
 							continue
 						}
 						found = true
