@@ -6,6 +6,7 @@ const (
 	CmdExit = "exit"
 	CmdEcho = "echo"
 	CmdType = "type"
+	CmdPwd = "pwd"
 )
 
 type Cmd struct {

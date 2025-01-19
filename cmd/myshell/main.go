@@ -89,6 +89,16 @@ func main() {
 
 				fmt.Fprintf(os.Stdout, "%s is %s\r\n", arg, filePath)
 			}
+		case CmdPwd:
+			{
+				ex, err := os.Executable()
+				if err != nil {
+					fmt.Fprintf(os.Stdout, "could not get working dir: %v", err)
+					continue
+				}
+
+				fmt.Fprintln(os.Stdout, filepath.Dir(ex))
+			}
 		default:
 			filePath := findFile(command.Key, osPaths)
 			if filePath == "" {
