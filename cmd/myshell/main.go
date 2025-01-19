@@ -4,6 +4,8 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
 )
@@ -13,6 +15,13 @@ type FileType int
 const (
 	FileTypeBuiltIn FileType = iota
 	FileTypeExecutable
+)
+
+type ControlFlow int
+
+const (
+	FlowContinue ControlFlow = iota
+	FlowBreak
 )
 
 func main() {
@@ -33,6 +42,9 @@ func main() {
 			fmt.Fprintf(os.Stdout, "invalid command: %v\r\n", err)
 			continue
 		}
+
+		pathVal, pathExists := os.LookupEnv("PATH")
+		osPaths := strings.Split(pathVal, string(os.PathListSeparator))
 
 		switch command.Key {
 		case CmdExit:
@@ -57,42 +69,65 @@ func main() {
 					continue
 				}
 
-				val, exists := os.LookupEnv("PATH")
-				osPaths := strings.Split(val, string(os.PathListSeparator))
+				arg := command.Args[0]
 
-				for _, arg := range command.Args {
-					if IsBuiltIn(arg) {
-						fmt.Fprintf(os.Stdout, "%s is a shell builtin\r\n", arg)
-					} else {
-						if !exists {
-							fmt.Fprintf(os.Stdout, "%s: not found\r\n", arg)
+				if IsBuiltIn(arg) {
+					fmt.Fprintf(os.Stdout, "%s is a shell builtin\r\n", arg)
+				} else {
+					if !pathExists {
+						fmt.Fprintf(os.Stdout, "%s: not found\r\n", arg)
+						continue
+					}
+
+					var found bool
+					for _, p := range osPaths {
+						files, _ := os.ReadDir(p)
+						if len(files) == 0 {
 							continue
 						}
 
-						var found bool
-						for _, p := range osPaths {
-							files, _ := os.ReadDir(p)
-							if len(files) == 0 {
-								continue
-							}
-
-							for _, f := range files {
-								if !f.IsDir() && f.Name() == arg {
-									fmt.Fprintf(os.Stdout, "%s is %s\r\n", arg, fileNameDisplay(p, f.Name()))
-									found = true
-									break
-								}
+						for _, f := range files {
+							if !f.IsDir() && f.Name() == arg {
+								fmt.Fprintf(os.Stdout, "%s is %s\r\n", arg, filepath.Join(p, f.Name()))
+								found = true
+								break
 							}
 						}
+					}
 
-						if !found {
-							fmt.Fprintf(os.Stdout, "%s: not found\r\n", arg)
-						}
+					if !found {
+						fmt.Fprintf(os.Stdout, "%s: not found\r\n", arg)
 					}
 				}
 			}
 		default:
-			fmt.Fprintf(os.Stdout, "%s: command not found\r\n", command.Key)
+			fileName := command.Key
+
+			var found bool
+			for _, p := range osPaths {
+				files, _ := os.ReadDir(p)
+				if len(files) == 0 {
+					continue
+				}
+
+				for _, f := range files {
+					if !f.IsDir() && f.Name() == fileName {
+						fullPath := filepath.Join(p, f.Name())
+						out, err := exec.Command(fullPath, command.Args...).Output()
+						if err != nil {
+							fmt.Fprintf(os.Stdout, "Could not execute command %s: %v\r\n", fullPath, err)
+							continue
+						}
+						found = true
+						fmt.Fprint(os.Stdout, string(out), "\r\n")
+						break
+					}
+				}
+			}
+
+			if !found {
+				fmt.Fprintf(os.Stdout, "%s: command not found\r\n", command.Key)
+			}
 		}
 	}
 }
@@ -103,11 +138,4 @@ func fileType(command, path string) FileType {
 	}
 
 	return FileTypeExecutable
-}
-
-func fileNameDisplay(path, fName string) string {
-	if path[len(path)-1:] == string(os.PathSeparator) {
-		return path + fName
-	}
-	return path + string(os.PathSeparator) + fName
 }
