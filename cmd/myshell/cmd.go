@@ -7,6 +7,7 @@ const (
 	CmdEcho = "echo"
 	CmdType = "type"
 	CmdPwd  = "pwd"
+	CmdCd   = "cd"
 )
 
 type Cmd struct {
@@ -30,5 +31,6 @@ func IsBuiltIn(name string) bool {
 	return name == CmdExit ||
 		name == CmdEcho ||
 		name == CmdType ||
-		name == CmdPwd
+		name == CmdPwd ||
+		name == CmdCd
 }

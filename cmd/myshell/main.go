@@ -99,6 +99,18 @@ func main() {
 
 				fmt.Fprintln(os.Stdout, wd)
 			}
+		case CmdCd:
+			{
+				if len(command.Args) == 0 {
+					continue
+				}
+
+				err := os.Chdir(command.Args[0])
+				if err != nil {
+					fmt.Fprintf(os.Stdout, "cd: %s: No such file or directory\r\n", command.Key)
+					continue
+				}
+			}
 		default:
 			filePath := findFile(command.Key, osPaths)
 			if filePath == "" {
