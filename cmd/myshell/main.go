@@ -115,7 +115,7 @@ func main() {
 						fullPath := filepath.Join(p, f.Name())
 						out, err := exec.Command(fullPath, command.Args...).Output()
 						if err != nil {
-							fmt.Fprintf(os.Stdout, "Could not execute command %s: %v\r\n", fullPath, err)
+							fmt.Fprintf(os.Stdout, "Could not execute command %s: %v\r\n", fileName, err)
 							continue
 						}
 						found = true
