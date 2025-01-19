@@ -102,7 +102,7 @@ func main() {
 				continue
 			}
 
-			fmt.Fprint(os.Stdout, string(out), "\r\n")
+			fmt.Fprint(os.Stdout, string(out))
 		}
 	}
 }
