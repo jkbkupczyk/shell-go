@@ -97,7 +97,7 @@ func main() {
 					continue
 				}
 
-				fmt.Fprintln(os.Stdout, filepath.Dir(ex))
+				fmt.Fprint(os.Stdout, filepath.Dir(ex), "\r\n")
 			}
 		default:
 			filePath := findFile(command.Key, osPaths)
