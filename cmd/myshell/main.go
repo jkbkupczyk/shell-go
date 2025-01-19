@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strconv"
 	"strings"
 )
@@ -92,13 +91,13 @@ func main() {
 			}
 		case CmdPwd:
 			{
-				_, name, _, ok := runtime.Caller(0)
-				if !ok {
-					fmt.Fprintln(os.Stdout, "could not get working dir")
-					continue
+				wd, err := os.Getwd()
+				if err != nil {
+					fmt.Fprintf(os.Stdout, "could not get working dir: %v\r\n", err)
+					return
 				}
 
-				fmt.Fprintln(os.Stdout, filepath.Dir(name))
+				fmt.Fprintln(os.Stdout, wd)
 			}
 		default:
 			filePath := findFile(command.Key, osPaths)
