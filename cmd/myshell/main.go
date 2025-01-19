@@ -96,13 +96,14 @@ func main() {
 				continue
 			}
 
-			out, err := exec.Command(command.Key, command.Args...).Output()
-			if err != nil {
+			c := exec.Command(command.Key, command.Args...)
+			c.Stderr = os.Stderr
+			c.Stdout = os.Stdout
+
+			if err := c.Run(); err != nil {
 				fmt.Fprintf(os.Stdout, "could not execute command %s: %v\r\n", filePath, err)
 				continue
 			}
-
-			fmt.Fprint(os.Stdout, string(out))
 		}
 	}
 }
