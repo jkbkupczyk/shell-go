@@ -4,34 +4,18 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"slices"
 	"strconv"
 	"strings"
 )
 
-var builtins []string = []string{
-	"exit", "echo", "type",
-}
+type FileType int
 
-type Cmd struct {
-	Key  string
-	Args []string
-}
-
-func toCmd(in string) (Cmd, error) {
-	data := strings.Split(in, " ")
-	if len(data) == 0 {
-		return Cmd{Key: in}, nil
-	}
-
-	return Cmd{
-		Key:  data[0],
-		Args: data[1:],
-	}, nil
-}
+const (
+	FileTypeBuiltIn FileType = iota
+	FileTypeExecutable
+)
 
 func main() {
-
 	for {
 		if _, err := fmt.Fprint(os.Stdout, "$ "); err != nil {
 			fmt.Fprintf(os.Stdout, "write error: %v\r\n", err)
@@ -51,10 +35,10 @@ func main() {
 		}
 
 		switch command.Key {
-		case "exit":
+		case CmdExit:
 			{
 				if len(command.Args) == 0 {
-					continue
+					os.Exit(0)
 				}
 
 				exitCode, err := strconv.Atoi(command.Args[0])
@@ -65,26 +49,65 @@ func main() {
 
 				os.Exit(exitCode)
 			}
-		case "echo":
+		case CmdEcho:
+			fmt.Fprint(os.Stdout, strings.Join(command.Args, " "), "\r\n")
+		case CmdType:
 			{
-				fmt.Fprint(os.Stdout, strings.Join(command.Args, " "), "\r\n")
-			}
-		case "type":
-			{
-				for _, arg := range command.Args {
-					if slices.Contains(builtins, arg) {
-						fmt.Fprintf(os.Stdout, "%s is a shell builtin\r\n", arg)
-					} else {
-						fmt.Fprintf(os.Stdout, "%s: not found\r\n", arg)
-					}
+				if len(command.Args) == 0 {
+					continue
 				}
 
+				val, exists := os.LookupEnv("PATH")
+				osPaths := strings.Split(val, string(os.PathListSeparator))
+
+				for _, arg := range command.Args {
+					if IsBuiltIn(arg) {
+						fmt.Fprintf(os.Stdout, "%s is a shell builtin\r\n", arg)
+					} else {
+						if !exists {
+							fmt.Fprintf(os.Stdout, "%s: not found\r\n", arg)
+							continue
+						}
+
+						var found bool
+						for _, p := range osPaths {
+							files, _ := os.ReadDir(p)
+							if len(files) == 0 {
+								continue
+							}
+
+							for _, f := range files {
+								if !f.IsDir() && f.Name() == arg {
+									fmt.Fprintf(os.Stdout, "%s is %s\r\n", arg, fileNameDisplay(p, f.Name()))
+									found = true
+									break
+								}
+							}
+						}
+
+						if !found {
+							fmt.Fprintf(os.Stdout, "%s: not found\r\n", arg)
+						}
+					}
+				}
 			}
 		default:
-			{
-				fmt.Fprintf(os.Stdout, "%s: command not found\r\n", command.Key)
-			}
+			fmt.Fprintf(os.Stdout, "%s: command not found\r\n", command.Key)
 		}
 	}
+}
 
+func fileType(command, path string) FileType {
+	if IsBuiltIn(command) {
+		return FileTypeBuiltIn
+	}
+
+	return FileTypeExecutable
+}
+
+func fileNameDisplay(path, fName string) string {
+	if path[len(path)-1:] == string(os.PathSeparator) {
+		return path + fName
+	}
+	return path + string(os.PathSeparator) + fName
 }
