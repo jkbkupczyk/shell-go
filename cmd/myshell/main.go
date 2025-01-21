@@ -10,20 +10,6 @@ import (
 	"strings"
 )
 
-type FileType int
-
-const (
-	FileTypeBuiltIn FileType = iota
-	FileTypeExecutable
-)
-
-type ControlFlow int
-
-const (
-	FlowContinue ControlFlow = iota
-	FlowBreak
-)
-
 func main() {
 	for {
 		if _, err := fmt.Fprint(os.Stdout, "$ "); err != nil {
@@ -150,12 +136,4 @@ func findFile(fileName string, paths []string) string {
 	}
 
 	return ""
-}
-
-func fileType(command, path string) FileType {
-	if IsBuiltIn(command) {
-		return FileTypeBuiltIn
-	}
-
-	return FileTypeExecutable
 }

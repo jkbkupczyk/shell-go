@@ -1,5 +1,9 @@
 package main
 
+import (
+	"strings"
+)
+
 const (
 	CmdExit = "exit"
 	CmdEcho = "echo"
@@ -15,6 +19,7 @@ type Cmd struct {
 
 func toCmd(in string) (Cmd, error) {
 	args := parseCommand(in)
+
 	if len(args) == 0 {
 		return Cmd{Key: in}, nil
 	}
@@ -27,34 +32,46 @@ func toCmd(in string) (Cmd, error) {
 
 func parseCommand(in string) []string {
 	quoted := false
-	start := 0
-	values := make([]string, 0)
+	var sb strings.Builder
+	tokens := make([]string, 0)
 
-	for i, ch := range in {
+	appendToken := func() {
+		if sb.Len() == 0 {
+			return
+		}
+		tokens = append(tokens, sb.String())
+		sb.Reset()
+	}
+
+	for _, ch := range in {
 		switch ch {
 		case ' ':
 			{
-				if !quoted {
-					values = append(values, in[start:i])
-					start = i
+				if quoted {
+					sb.WriteRune(ch)
+					continue
 				}
+				appendToken()
 			}
 		case '\'':
 			{
-				// already quoted, end arg
 				if quoted {
-					values = append(values, in[start+1:i])
+					// already quoted, parse argument
+					appendToken()
 					quoted = false
 				} else {
-					start = i
 					quoted = true
 				}
 			}
+		default:
+			sb.WriteRune(ch)
 		}
-
 	}
 
-	return values
+	// append remaining token
+	appendToken()
+
+	return tokens
 }
 
 func IsBuiltIn(name string) bool {
