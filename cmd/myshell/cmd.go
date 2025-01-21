@@ -31,7 +31,6 @@ func toCmd(in string) (Cmd, error) {
 }
 
 func parseCommand(in string) []string {
-	quoted := false
 	var sb strings.Builder
 	tokens := make([]string, 0)
 
@@ -43,6 +42,9 @@ func parseCommand(in string) []string {
 		sb.Reset()
 	}
 
+	quoted := false
+	nextToken := true
+
 	for _, ch := range in {
 		switch ch {
 		case ' ':
@@ -52,12 +54,15 @@ func parseCommand(in string) []string {
 					continue
 				}
 				appendToken()
+				nextToken = false
 			}
 		case '\'':
 			{
+				// already quoted, parse argument
 				if quoted {
-					// already quoted, parse argument
-					appendToken()
+					if nextToken {
+						appendToken()
+					}
 					quoted = false
 				} else {
 					quoted = true

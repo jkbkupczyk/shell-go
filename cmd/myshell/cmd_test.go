@@ -66,6 +66,21 @@ func TestParseCommand(t *testing.T) {
 			input:    "echo 'hello' 'world'",
 			wantArgs: []string{"echo", "hello", "world"},
 		},
+		{
+			desc:     "",
+			input:    "echo 'shell     example' 'script''hello'",
+			wantArgs: []string{"echo", "shell     example", "scripthello"},
+		},
+		{
+			desc:     "",
+			input:    "echo '1''2''3''4'",
+			wantArgs: []string{"echo", "1234"},
+		},
+		{
+			desc:     "",
+			input:    "'echo' '1''2''3''4'",
+			wantArgs: []string{"echo", "1234"},
+		},
 	}
 	for _, tC := range testCases {
 		t.Run(tC.desc, func(t *testing.T) {
