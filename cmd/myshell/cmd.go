@@ -1,7 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"strings"
+	"unicode"
 )
 
 const (
@@ -18,19 +20,31 @@ type Cmd struct {
 }
 
 func toCmd(in string) (Cmd, error) {
-	args := parseCommand(in)
+	args, err := parseCommand(in)
+	if err != nil {
+		return Cmd{}, err
+	}
 
 	if len(args) == 0 {
 		return Cmd{Key: in}, nil
 	}
 
 	return Cmd{
+		// first element is program name
 		Key:  args[0],
 		Args: args[1:],
 	}, nil
 }
 
-func parseCommand(in string) []string {
+type parseMode int
+
+const (
+	Unquoted parseMode = iota
+	SingleQuoted
+	DoubleQuoted
+)
+
+func parseCommand(in string) ([]string, error) {
 	var sb strings.Builder
 	tokens := make([]string, 0)
 
@@ -42,41 +56,68 @@ func parseCommand(in string) []string {
 		sb.Reset()
 	}
 
-	quoted := false
-	nextToken := true
+	i := 0
+	mode := Unquoted
+	chs := []rune(in)
 
-	for _, ch := range in {
-		switch ch {
-		case ' ':
+	for i < len(chs) {
+		ch := chs[i]
+		switch mode {
+		case Unquoted:
 			{
-				if quoted {
-					sb.WriteRune(ch)
-					continue
-				}
-				appendToken()
-				nextToken = false
-			}
-		case '\'':
-			{
-				// already quoted, parse argument
-				if quoted {
-					if nextToken {
-						appendToken()
-					}
-					quoted = false
+				if ch == '"' {
+					mode = DoubleQuoted
+				} else if ch == '\'' {
+					mode = SingleQuoted
+				} else if ch == '\\' {
+					return nil, fmt.Errorf("illegal backslash inside unquoted input at index = %d", i)
+				} else if unicode.IsSpace(ch) {
+					appendToken()
 				} else {
-					quoted = true
+					sb.WriteRune(ch)
+				}
+			}
+		case SingleQuoted:
+			{
+				if ch == '\'' {
+					mode = Unquoted
+				} else {
+					sb.WriteRune(ch)
+				}
+			}
+		case DoubleQuoted:
+			{
+				if ch == '"' {
+					mode = Unquoted
+				} else if ch == '\\' {
+					if i+1 < len(chs) {
+						next := chs[i+1]
+						if next == '$' || next == '`' || next == '\\' || next == '\n' {
+							sb.WriteRune(next)
+							i += 1 // skip next
+						} else {
+							sb.WriteRune(chs[i])
+						}
+					}
+				} else {
+					sb.WriteRune(ch)
 				}
 			}
 		default:
-			sb.WriteRune(ch)
+			return nil, fmt.Errorf("unknown parse mode = %v", mode)
 		}
+
+		i += 1
 	}
 
 	// append remaining token
 	appendToken()
 
-	return tokens
+	if mode != Unquoted {
+		return nil, fmt.Errorf("invalid state, mode = %v not handled properly", mode)
+	}
+
+	return tokens, nil
 }
 
 func IsBuiltIn(name string) bool {

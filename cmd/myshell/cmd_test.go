@@ -78,19 +78,48 @@ func TestParseCommand(t *testing.T) {
 		},
 		{
 			desc:     "",
-			input:    "'echo' '1''2''3''4'",
-			wantArgs: []string{"echo", "1234"},
+			input:    "echo \"quz  hello\"  \"bar\"",
+			wantArgs: []string{"echo", "quz  hello", "bar"},
+		},
+		{
+			desc:     "",
+			input:    "echo \"bar\"  \"shell's\"  \"foo\"",
+			wantArgs: []string{"echo", "bar", "shell's", "foo"},
+		},
+		{
+			desc:     "",
+			input:    "echo foo 'bar' \"baz\"",
+			wantArgs: []string{"echo", "foo", "bar", "baz"},
+		},
+		{
+			desc:     "",
+			input:    "echo \"hello world\"",
+			wantArgs: []string{"echo", "hello world"},
+		},
+		{
+			desc:     "",
+			input:    "echo \"\\$\" \"\\`\" \"\\\\\" \"\\n\" \"\\X\"",
+			wantArgs: []string{"echo", "$", "`", "\\", "\n", "\\X"},
+		},
+		{
+			desc:     "",
+			input:    "echo \"arg with \\\"escaped quotes\\\"\"",
+			wantArgs: []string{"echo", "arg with \"escaped quotes\""},
 		},
 	}
 	for _, tC := range testCases {
 		t.Run(tC.desc, func(t *testing.T) {
-			p := parseCommand(tC.input)
+			p, err := parseCommand(tC.input)
+			if err != nil {
+				t.Fatalf("parseCommand returned error: %v", err)
+			}
+			argsStr := strings.Join(p, ",")
 			if len(p) != len(tC.wantArgs) {
-				t.Fatalf("parsed args length differs, want: %d, got: %d (args=%s)", len(tC.wantArgs), len(p), strings.Join(p, ","))
+				t.Fatalf("parsed args length differs, want: %d, got: %d (args=%s)", len(tC.wantArgs), len(p), argsStr)
 			}
 			for i, arg := range tC.wantArgs {
 				if p[i] != arg {
-					t.Errorf("args value differs at index = %d, value wanted: %s, got: %s", i, arg, p[i])
+					t.Errorf("args value differs at index = %d, value wanted: %s, got: %s (args=%s)", i, arg, p[i], argsStr)
 				}
 			}
 		})
