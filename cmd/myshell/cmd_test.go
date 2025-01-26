@@ -116,6 +116,16 @@ func TestParseCommand(t *testing.T) {
 			input:    "echo world\\ \\ \\ \\ \\ \\ script",
 			wantArgs: []string{"echo", "world      script"},
 		},
+		{
+			desc:     "Backslash within single quotes",
+			input:    "echo 'shell\\\\\\nscript'",
+			wantArgs: []string{"echo", "shell\\\\\\nscript"},
+		},
+		{
+			desc:     "Backslash within single quotes",
+			input:    "echo 'example\\\"testhello\\\"shell'",
+			wantArgs: []string{"echo", "example\\\"testhello\\\"shell"},
+		},
 	}
 	for _, tC := range testCases {
 		t.Run(tC.desc, func(t *testing.T) {
