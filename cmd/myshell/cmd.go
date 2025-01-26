@@ -95,7 +95,7 @@ func parseCommand(in string) ([]string, error) {
 				} else if ch == '\\' {
 					if i+1 < len(chs) {
 						next := chs[i+1]
-						if next == '$' || next == '`' || next == '\\' || next == '\n' {
+						if next == '$' || next == '`' || next == '"' || next == '\\' || next == '\n' {
 							sb.WriteRune(next)
 							i += 1 // skip next
 						} else {
