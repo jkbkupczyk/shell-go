@@ -77,34 +77,44 @@ func TestParseCommand(t *testing.T) {
 			wantArgs: []string{"echo", "1234"},
 		},
 		{
-			desc:     "",
+			desc:     "Double quotes",
 			input:    "echo \"quz  hello\"  \"bar\"",
 			wantArgs: []string{"echo", "quz  hello", "bar"},
 		},
 		{
-			desc:     "",
+			desc:     "Double quotes",
 			input:    "echo \"bar\"  \"shell's\"  \"foo\"",
 			wantArgs: []string{"echo", "bar", "shell's", "foo"},
 		},
 		{
-			desc:     "",
+			desc:     "Double quotes",
 			input:    "echo foo 'bar' \"baz\"",
 			wantArgs: []string{"echo", "foo", "bar", "baz"},
 		},
 		{
-			desc:     "",
+			desc:     "Double quotes",
 			input:    "echo \"hello world\"",
 			wantArgs: []string{"echo", "hello world"},
 		},
 		{
-			desc:     "",
+			desc:     "Double quotes",
 			input:    "echo \"\\$\" \"\\`\" \"\\\\\" \"\\n\" \"\\X\"",
 			wantArgs: []string{"echo", "$", "`", "\\", "\n", "\\X"},
 		},
 		{
-			desc:     "",
+			desc:     "Double quotes",
 			input:    "echo \"arg with \\\"escaped quotes\\\"\"",
 			wantArgs: []string{"echo", "arg with \"escaped quotes\""},
+		},
+		{
+			desc:     "Backslash outside quotes",
+			input:    "echo \"before\\   after\"",
+			wantArgs: []string{"echo", "before\\   after"},
+		},
+		{
+			desc:     "Backslash outside quotes",
+			input:    "echo world\\ \\ \\ \\ \\ \\ script",
+			wantArgs: []string{"echo", "world      script"},
 		},
 	}
 	for _, tC := range testCases {

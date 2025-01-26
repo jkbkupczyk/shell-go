@@ -70,7 +70,10 @@ func parseCommand(in string) ([]string, error) {
 				} else if ch == '\'' {
 					mode = SingleQuoted
 				} else if ch == '\\' {
-					return nil, fmt.Errorf("illegal backslash inside unquoted input at index = %d", i)
+					if i+1 < len(chs) {
+						sb.WriteRune(chs[i+1])
+						i += 1
+					}
 				} else if unicode.IsSpace(ch) {
 					appendToken()
 				} else {
