@@ -98,7 +98,7 @@ func redirects(args []string) (*os.File, *os.File, []string, error) {
 				return nil, nil, args, errNoTargetFd
 			}
 			appendOut = true
-			targetErr = args[i+1]
+			targetOut = args[i+1]
 			i++
 		} else {
 			newArgs = append(newArgs, arg)
