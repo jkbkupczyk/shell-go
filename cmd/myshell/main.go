@@ -138,7 +138,7 @@ func createFile(fileName string, append bool) (*os.File, error) {
 	var err error
 
 	if append {
-		fd, err = os.OpenFile(fileName, os.O_RDWR|os.O_APPEND, os.ModePerm)
+		fd, err = os.OpenFile(fileName, os.O_RDWR|os.O_CREATE|os.O_APPEND, os.ModePerm)
 	} else {
 		fd, err = os.Create(fileName)
 	}
