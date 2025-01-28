@@ -29,13 +29,13 @@ func main() {
 			continue
 		}
 
-		fdOut, args, err := redirects(command.Args)
+		fdOut, fdErr, args, err := redirects(command.Args)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "failed redirecting: %v\r\n", err)
 			continue
 		}
 
-		execCommand(command.Key, args, fdOut, nil)
+		execCommand(command.Key, args, fdOut, fdErr)
 	}
 }
 
@@ -69,37 +69,45 @@ func execCommand(programName string, args []string, fdOut *os.File, fdErr *os.Fi
 	}
 }
 
-func redirects(args []string) (*os.File, []string, error) {
+func redirects(args []string) (*os.File, *os.File, []string, error) {
 	if len(args) == 0 {
-		return nil, args, nil
+		return nil, nil, args, nil
 	}
 
 	newArgs := make([]string, 0)
-	targetOut := ""
+	var targetOut, targetErr string
 
 	for i := 0; i < len(args); i++ {
 		arg := args[i]
 		if arg == ">" || arg == "1>" {
 			if i+1 >= len(args) {
-				return nil, args, errNoTargetFd
+				return nil, nil, args, errNoTargetFd
 			}
 			targetOut = args[i+1]
+			i++
+		} else if arg == "2>" {
+			if i+1 >= len(args) {
+				return nil, nil, args, errNoTargetFd
+			}
+			targetErr = args[i+1]
 			i++
 		} else {
 			newArgs = append(newArgs, arg)
 		}
 	}
 
-	if targetOut == "" {
-		return nil, args, nil
-	}
-
 	fdOut, err := createFile(targetOut)
 	if err != nil {
-		return nil, newArgs, err
+		return nil, nil, newArgs, err
 	}
 
-	return fdOut, newArgs, err
+	fdErr, err := createFile(targetErr)
+	if err != nil {
+		closeFile(fdOut)
+		return nil, nil, newArgs, err
+	}
+
+	return fdOut, fdErr, newArgs, err
 }
 
 func closeFile(f *os.File) {
@@ -113,6 +121,10 @@ func closeFile(f *os.File) {
 }
 
 func createFile(fileName string) (*os.File, error) {
+	if fileName == "" {
+		return nil, nil
+	}
+
 	f, err := os.Create(fileName)
 	if err != nil {
 		return nil, err
