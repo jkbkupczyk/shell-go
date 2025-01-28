@@ -76,7 +76,7 @@ func redirects(args []string) (*os.File, *os.File, []string, error) {
 
 	newArgs := make([]string, 0)
 	var targetOut, targetErr string
-	var appendOut bool
+	var appendOut, appendErr bool
 
 	for i := 0; i < len(args); i++ {
 		arg := args[i]
@@ -100,6 +100,13 @@ func redirects(args []string) (*os.File, *os.File, []string, error) {
 			appendOut = true
 			targetOut = args[i+1]
 			i++
+		} else if arg == "2>>" {
+			if i+1 >= len(args) {
+				return nil, nil, args, errNoTargetFd
+			}
+			appendErr = true
+			targetErr = args[i+1]
+			i++
 		} else {
 			newArgs = append(newArgs, arg)
 		}
@@ -110,7 +117,7 @@ func redirects(args []string) (*os.File, *os.File, []string, error) {
 		return nil, nil, newArgs, err
 	}
 
-	fdErr, err := createFile(targetErr, false)
+	fdErr, err := createFile(targetErr, appendErr)
 	if err != nil {
 		closeFile(fdOut)
 		return nil, nil, newArgs, err
