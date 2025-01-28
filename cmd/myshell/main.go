@@ -2,138 +2,121 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"os"
-	"os/exec"
-	"path/filepath"
-	"strconv"
 	"strings"
 )
+
+var errNoTargetFd = errors.New("redirect specified but no target file descriptor got")
 
 func main() {
 	for {
 		if _, err := fmt.Fprint(os.Stdout, "$ "); err != nil {
-			fmt.Fprintf(os.Stdout, "write error: %v\r\n", err)
+			fmt.Fprintf(os.Stderr, "write error: %v\r\n", err)
 			continue
 		}
 
 		input, err := bufio.NewReader(os.Stdin).ReadString('\n')
 		if err != nil {
-			fmt.Fprintf(os.Stdout, "cannot read input: %v\r\n", err)
+			fmt.Fprintf(os.Stderr, "cannot read input: %v\r\n", err)
 			continue
 		}
 
 		command, err := toCmd(strings.TrimSpace(input))
 		if err != nil {
-			fmt.Fprintf(os.Stdout, "invalid command: %v\r\n", err)
+			fmt.Fprintf(os.Stderr, "invalid command: %v\r\n", err)
 			continue
 		}
 
-		pathVal, pathExists := os.LookupEnv("PATH")
-		osPaths := strings.Split(pathVal, string(os.PathListSeparator))
-
-		switch command.Key {
-		case CmdExit:
-			{
-				if len(command.Args) == 0 {
-					os.Exit(0)
-				}
-
-				exitCode, err := strconv.Atoi(command.Args[0])
-				if err != nil {
-					fmt.Fprintf(os.Stdout, "invalid exit code value: %s\r\n", command.Args[0])
-					continue
-				}
-
-				os.Exit(exitCode)
-			}
-		case CmdEcho:
-			fmt.Fprint(os.Stdout, strings.Join(command.Args, " "), "\r\n")
-		case CmdType:
-			{
-				if len(command.Args) == 0 {
-					continue
-				}
-
-				arg := command.Args[0]
-
-				if IsBuiltIn(arg) {
-					fmt.Fprintf(os.Stdout, "%s is a shell builtin\r\n", arg)
-					continue
-				}
-
-				if !pathExists {
-					fmt.Fprintf(os.Stdout, "%s: not found\r\n", arg)
-					continue
-				}
-
-				filePath := findFile(arg, osPaths)
-				if filePath == "" {
-					fmt.Fprintf(os.Stdout, "%s: not found\r\n", arg)
-					continue
-				}
-
-				fmt.Fprintf(os.Stdout, "%s is %s\r\n", arg, filePath)
-			}
-		case CmdPwd:
-			{
-				wd, err := os.Getwd()
-				if err != nil {
-					fmt.Fprintf(os.Stdout, "could not get working dir: %v\r\n", err)
-					return
-				}
-
-				fmt.Fprintln(os.Stdout, wd)
-			}
-		case CmdCd:
-			{
-				if len(command.Args) == 0 {
-					continue
-				}
-
-				arg := command.Args[0]
-
-				if arg == "~" {
-					arg, _ = os.UserHomeDir()
-				}
-
-				if err := os.Chdir(arg); err != nil {
-					fmt.Fprintf(os.Stdout, "cd: %s: No such file or directory\r\n", arg)
-					continue
-				}
-			}
-		default:
-			filePath := findFile(command.Key, osPaths)
-			if filePath == "" {
-				fmt.Fprintf(os.Stdout, "%s: command not found\r\n", command.Key)
-				continue
-			}
-
-			c := exec.Command(command.Key, command.Args...)
-			c.Stderr = os.Stderr
-			c.Stdout = os.Stdout
-
-			if err := c.Run(); err != nil {
-				fmt.Fprintf(os.Stdout, "could not execute command %s: %v\r\n", filePath, err)
-				continue
-			}
+		fdOut, args, err := redirects(command.Args)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "failed redirecting: %v\r\n", err)
+			continue
 		}
+
+		execCommand(command.Key, args, fdOut, nil)
 	}
 }
 
-func findFile(fileName string, paths []string) string {
-	for _, p := range paths {
-		files, _ := os.ReadDir(p)
-		if len(files) == 0 {
-			continue
-		}
+func execCommand(programName string, args []string, fdOut *os.File, fdErr *os.File) {
+	defer closeFile(fdOut)
+	defer closeFile(fdErr)
 
-		for _, f := range files {
-			if !f.IsDir() && f.Name() == fileName {
-				return filepath.Join(p, f.Name())
+	stdout := os.Stdout
+	if fdOut != nil {
+		stdout = fdOut
+	}
+
+	stderr := os.Stderr
+	if fdErr != nil {
+		stderr = fdErr
+	}
+
+	switch programName {
+	case CmdExit:
+		cmdExit(stderr, args)
+	case CmdEcho:
+		cmdEcho(stdout, args)
+	case CmdType:
+		cmdType(stdout, args)
+	case CmdPwd:
+		cmdPwd(stdout, stderr)
+	case CmdCd:
+		cmdCd(stderr, args)
+	default:
+		cmdExec(stdout, stderr, programName, args)
+	}
+}
+
+func redirects(args []string) (*os.File, []string, error) {
+	if len(args) == 0 {
+		return nil, args, nil
+	}
+
+	newArgs := make([]string, 0)
+	targetOut := ""
+
+	for i := 0; i < len(args); i++ {
+		arg := args[i]
+		if arg == ">" || arg == "1>" {
+			if i+1 >= len(args) {
+				return nil, args, errNoTargetFd
 			}
+			targetOut = args[i+1]
+			i++
+		} else {
+			newArgs = append(newArgs, arg)
 		}
 	}
 
-	return ""
+	if targetOut == "" {
+		return nil, args, nil
+	}
+
+	fdOut, err := createFile(targetOut)
+	if err != nil {
+		return nil, newArgs, err
+	}
+
+	return fdOut, newArgs, err
+}
+
+func closeFile(f *os.File) {
+	if f == nil {
+		return
+	}
+
+	if err := f.Close(); err != nil {
+		fmt.Fprintf(os.Stderr, "could not close file %s: %v\r\n", f.Name(), err)
+	}
+}
+
+func createFile(fileName string) (*os.File, error) {
+	f, err := os.Create(fileName)
+	if err != nil {
+		return nil, err
+	}
+
+	return f, nil
 }

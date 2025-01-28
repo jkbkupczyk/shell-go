@@ -2,8 +2,12 @@ package main
 
 import (
 	"fmt"
+	"io"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strconv"
 	"strings"
-	"unicode"
 )
 
 const (
@@ -13,6 +17,14 @@ const (
 	CmdPwd  = "pwd"
 	CmdCd   = "cd"
 )
+
+func isBuiltIn(name string) bool {
+	return name == CmdExit ||
+		name == CmdEcho ||
+		name == CmdType ||
+		name == CmdPwd ||
+		name == CmdCd
+}
 
 type Cmd struct {
 	Key  string
@@ -36,97 +48,104 @@ func toCmd(in string) (Cmd, error) {
 	}, nil
 }
 
-type parseMode int
-
-const (
-	Unquoted parseMode = iota
-	SingleQuoted
-	DoubleQuoted
-)
-
-func parseCommand(in string) ([]string, error) {
-	var sb strings.Builder
-	tokens := make([]string, 0)
-
-	appendToken := func() {
-		if sb.Len() == 0 {
-			return
-		}
-		tokens = append(tokens, sb.String())
-		sb.Reset()
+func cmdExit(stderr io.Writer, args []string) {
+	if len(args) == 0 {
+		os.Exit(0)
 	}
 
-	i := 0
-	mode := Unquoted
-	chs := []rune(in)
-
-	for i < len(chs) {
-		ch := chs[i]
-		switch mode {
-		case Unquoted:
-			{
-				if ch == '"' {
-					mode = DoubleQuoted
-				} else if ch == '\'' {
-					mode = SingleQuoted
-				} else if ch == '\\' {
-					if i+1 < len(chs) {
-						sb.WriteRune(chs[i+1])
-						i += 1
-					}
-				} else if unicode.IsSpace(ch) {
-					appendToken()
-				} else {
-					sb.WriteRune(ch)
-				}
-			}
-		case SingleQuoted:
-			{
-				if ch == '\'' {
-					mode = Unquoted
-				} else {
-					sb.WriteRune(ch)
-				}
-			}
-		case DoubleQuoted:
-			{
-				if ch == '"' {
-					mode = Unquoted
-				} else if ch == '\\' {
-					if i+1 < len(chs) {
-						next := chs[i+1]
-						if next == '$' || next == '`' || next == '"' || next == '\\' || next == '\n' {
-							sb.WriteRune(next)
-							i += 1 // skip next
-						} else {
-							sb.WriteRune(chs[i])
-						}
-					}
-				} else {
-					sb.WriteRune(ch)
-				}
-			}
-		default:
-			return nil, fmt.Errorf("unknown parse mode = %v", mode)
-		}
-
-		i += 1
+	exitCode, err := strconv.Atoi(args[0])
+	if err != nil {
+		fmt.Fprintf(stderr, "invalid exit code value: %s\r\n", args[0])
 	}
 
-	// append remaining token
-	appendToken()
-
-	if mode != Unquoted {
-		return nil, fmt.Errorf("invalid state, mode = %v not handled properly", mode)
-	}
-
-	return tokens, nil
+	os.Exit(exitCode)
 }
 
-func IsBuiltIn(name string) bool {
-	return name == CmdExit ||
-		name == CmdEcho ||
-		name == CmdType ||
-		name == CmdPwd ||
-		name == CmdCd
+func cmdEcho(stdout io.Writer, args []string) {
+	fmt.Fprint(stdout, strings.Join(args, " "), "\r\n")
+}
+
+func cmdType(stdout io.Writer, args []string) {
+	if len(args) == 0 {
+		return
+	}
+
+	if isBuiltIn(args[0]) {
+		fmt.Fprintf(stdout, "%s is a shell builtin\r\n", args[0])
+		return
+	}
+
+	filePath := findFile(args[0])
+	if filePath == "" {
+		fmt.Fprintf(stdout, "%s: not found\r\n", args[0])
+		return
+	}
+
+	fmt.Fprintf(stdout, "%s is %s\r\n", args[0], filePath)
+}
+
+func cmdPwd(stdout io.Writer, stderr io.Writer) {
+	wd, err := os.Getwd()
+	if err != nil {
+		fmt.Fprintf(stderr, "could not get working dir: %v\r\n", err)
+		return
+	}
+
+	fmt.Fprintln(stdout, wd)
+}
+
+func cmdCd(stderr io.Writer, args []string) {
+	if len(args) == 0 {
+		return
+	}
+
+	targetDir := args[0]
+	if targetDir == "~" {
+		targetDir, _ = os.UserHomeDir()
+	}
+
+	if err := os.Chdir(targetDir); err != nil {
+		fmt.Fprintf(stderr, "cd: %s: No such file or directory\r\n", targetDir)
+		return
+	}
+}
+
+func cmdExec(stdout io.Writer, stderr io.Writer, execName string, args []string) {
+	filePath := findFile(execName)
+	if filePath == "" {
+		fmt.Fprintf(stdout, "%s: command not found\r\n", execName)
+		return
+	}
+
+	c := exec.Command(execName, args...)
+	c.Stderr = stderr
+	c.Stdout = stdout
+
+	if err := c.Run(); err != nil {
+		fmt.Fprintf(stderr, "could not execute command %s: %v\r\n", filePath, err)
+		return
+	}
+}
+
+func findFile(fileName string) string {
+	pathVal, pathExists := os.LookupEnv("PATH")
+	if !pathExists {
+		return ""
+	}
+
+	paths := strings.Split(pathVal, string(os.PathListSeparator))
+	for _, p := range paths {
+		files, _ := os.ReadDir(p)
+		if len(files) == 0 {
+			continue
+		}
+
+		for _, f := range files {
+			if !f.IsDir() && f.Name() == fileName {
+				return filepath.Join(p, f.Name())
+			}
+		}
+	}
+
+	return ""
 }
