@@ -76,9 +76,11 @@ func redirects(args []string) (*os.File, *os.File, []string, error) {
 
 	newArgs := make([]string, 0)
 	var targetOut, targetErr string
+	var appendOut bool
 
 	for i := 0; i < len(args); i++ {
 		arg := args[i]
+		// TODO: refactor
 		if arg == ">" || arg == "1>" {
 			if i+1 >= len(args) {
 				return nil, nil, args, errNoTargetFd
@@ -91,17 +93,24 @@ func redirects(args []string) (*os.File, *os.File, []string, error) {
 			}
 			targetErr = args[i+1]
 			i++
+		} else if arg == ">>" || arg == "1>>" {
+			if i+1 >= len(args) {
+				return nil, nil, args, errNoTargetFd
+			}
+			appendOut = true
+			targetErr = args[i+1]
+			i++
 		} else {
 			newArgs = append(newArgs, arg)
 		}
 	}
 
-	fdOut, err := createFile(targetOut)
+	fdOut, err := createFile(targetOut, appendOut)
 	if err != nil {
 		return nil, nil, newArgs, err
 	}
 
-	fdErr, err := createFile(targetErr)
+	fdErr, err := createFile(targetErr, false)
 	if err != nil {
 		closeFile(fdOut)
 		return nil, nil, newArgs, err
@@ -120,15 +129,23 @@ func closeFile(f *os.File) {
 	}
 }
 
-func createFile(fileName string) (*os.File, error) {
+func createFile(fileName string, append bool) (*os.File, error) {
 	if fileName == "" {
 		return nil, nil
 	}
 
-	f, err := os.Create(fileName)
+	var fd *os.File
+	var err error
+
+	if append {
+		fd, err = os.OpenFile(fileName, os.O_RDWR|os.O_APPEND, os.ModePerm)
+	} else {
+		fd, err = os.Create(fileName)
+	}
+
 	if err != nil {
 		return nil, err
 	}
 
-	return f, nil
+	return fd, nil
 }
