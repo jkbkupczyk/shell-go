@@ -121,10 +121,7 @@ func cmdExec(stdout io.Writer, stderr io.Writer, execName string, args []string)
 	c.Stderr = stderr
 	c.Stdout = stdout
 
-	if err := c.Run(); err != nil {
-		fmt.Fprintf(stderr, "could not execute command %s: %v\r\n", filePath, err)
-		return
-	}
+	c.Run()
 }
 
 func findFile(fileName string) string {
