@@ -25,6 +25,11 @@ func main() {
 	var sb strings.Builder
 	reader := bufio.NewReader(os.Stdin)
 
+	writeAndDisplay := func(r rune) {
+		sb.WriteRune(r)
+		fmt.Fprint(os.Stdout, string(r))
+	}
+
 	for {
 		if _, err := fmt.Fprint(os.Stdout, "$ "); err != nil {
 			fmt.Fprintf(os.Stderr, "write error: %v\r\n", err)
@@ -47,20 +52,18 @@ func main() {
 				fmt.Fprintln(os.Stdout)
 				break
 			} else if r == 0x9 {
-				missing := suggestMissing(sb.String())
-				if missing == "" {
+				missing, found := suggestMissing(sb.String())
+				if !found {
 					continue
 				}
 
 				for _, v := range missing {
-					sb.WriteRune(v)
-					fmt.Fprint(os.Stdout, string(v))
+					writeAndDisplay(v)
 				}
-
-				sb.WriteRune(' ')
+				
+				writeAndDisplay(' ')
 			} else {
-				sb.WriteRune(r)
-				fmt.Fprint(os.Stdout, string(r))
+				writeAndDisplay(r)
 			}
 		}
 

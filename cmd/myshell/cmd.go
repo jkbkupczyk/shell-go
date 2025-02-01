@@ -48,18 +48,18 @@ func toCmd(in string) (Cmd, error) {
 	}, nil
 }
 
-func suggestMissing(value string) string {
+func suggestMissing(value string) (string, bool) {
 	if value == "" {
-		return ""
+		return "", false
 	}
 
 	for _, c := range []string{CmdExit, CmdEcho, CmdType, CmdPwd, CmdCd} {
 		if value == c || strings.HasPrefix(c, value) {
-			return strings.TrimPrefix(c, value)
+			return strings.TrimPrefix(c, value), true
 		}
 	}
 
-	return ""
+	return "", false
 }
 
 func cmdExit(stderr io.Writer, args []string) {
