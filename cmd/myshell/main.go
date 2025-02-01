@@ -47,10 +47,17 @@ func main() {
 				fmt.Fprintln(os.Stdout)
 				break
 			} else if r == 0x9 {
-				for _, v := range suggestMissing(sb.String()) {
+				missing := suggestMissing(sb.String())
+				if missing == "" {
+					continue
+				}
+
+				for _, v := range missing {
 					sb.WriteRune(v)
 					fmt.Fprint(os.Stdout, string(v))
 				}
+
+				sb.WriteRune(' ')
 			} else {
 				sb.WriteRune(r)
 				fmt.Fprint(os.Stdout, string(r))
