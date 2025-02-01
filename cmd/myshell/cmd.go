@@ -48,6 +48,20 @@ func toCmd(in string) (Cmd, error) {
 	}, nil
 }
 
+func suggestMissing(value string) string {
+	if value == "" {
+		return ""
+	}
+
+	for _, c := range []string{CmdExit, CmdEcho, CmdType, CmdPwd, CmdCd} {
+		if value == c || strings.HasPrefix(c, value) {
+			return strings.TrimPrefix(c, value)
+		}
+	}
+
+	return ""
+}
+
 func cmdExit(stderr io.Writer, args []string) {
 	if len(args) == 0 {
 		os.Exit(0)
