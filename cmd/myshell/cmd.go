@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -61,6 +62,17 @@ func listSuggestions(value string) []string {
 			matching = append(matching, c)
 		}
 	}
+
+	slices.SortFunc(matching, func(left, right string) int {
+		leftLength := len(left)
+		rightLength := len(right)
+
+		if leftLength != rightLength {
+			return leftLength - rightLength
+		}
+
+		return strings.Compare(left, right)
+	})
 
 	return matching
 }
