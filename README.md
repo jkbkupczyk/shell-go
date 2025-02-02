@@ -1,35 +1,53 @@
-[![progress-banner](https://backend.codecrafters.io/progress/shell/882e7d6a-f5b8-4b61-ad1d-7e011e72d0ca)](https://app.codecrafters.io/users/codecrafters-bot?r=2qF)
+# shell-go
 
-This is a starting point for Go solutions to the
-["Build Your Own Shell" Challenge](https://app.codecrafters.io/courses/shell/overview).
+A minimal POSIX compliant shell, implemented in Go, that's capable of interpreting 
+shell commands, running external programs and builtin commands like:
+echo, type, pwd, cd and more. Includes stdout and stderr redirection and autocompletion.
 
-In this challenge, you'll build your own POSIX compliant shell that's capable of
-interpreting shell commands, running external programs and builtin commands like
-cd, pwd, echo and more. Along the way, you'll learn about shell command parsing,
-REPLs, builtin commands, and more.
+**Note**: This project is a part of ["Build Your Own Shell"](https://app.codecrafters.io/courses/shell/overview) from [codecrafters.io](https://codecrafters.io).
 
-**Note**: If you're viewing this repo on GitHub, head over to
-[codecrafters.io](https://codecrafters.io) to try the challenge.
+## Features
 
-# Passing the first stage
+- REPL
+- running builtin commands [exit, echo, type, pwd, cd]
+- running external program with arguments
+- support for non quoted single quoted, double quoted
+- stdout and stder redirection
+- stdout and stderr appending
+- autocompletion
+- signal handling (`Ctrl+C`, `Ctl+D`)
 
-The entry point for your `shell` implementation is in `cmd/myshell/main.go`.
-Study and uncomment the relevant code, and push your changes to pass the first
-stage:
+## Installation
 
-```sh
-git commit -am "pass 1st stage" # any msg
-git push origin master
-```
+Before you do any of the steps below, make sure you have [Golang](https://go.dev) installed.
 
-Time to move on to the next stage!
+1.  Clone the repo
+    ```sh
+    git clone https://github.com/jkbkupczyk/shell-go.git
+    ```
+2.  Build and run
+    ```sh
+    go build -o bin/myshell ./cmd/myshell/.
+    ./bin/myshell
+    ```
+3.  Run tests (optional!)
+    ```sh
+    go test -v -timeout 30s ./...
+    ```
 
-# Stage 2 & beyond
+You can also use [Make](https://www.gnu.org/software/make) commands: `run` - for building and running application and `test` for running tests - see [Makefile](Makefile).
 
-Note: This section is for stages 2 and beyond.
 
-1. Ensure you have `go (1.19)` installed locally
-1. Run `./your_program.sh` to run your program, which is implemented in
-   `cmd/myshell/main.go`.
-1. Commit your changes and run `git push origin master` to submit your solution
-   to CodeCrafters. Test output will be streamed to your terminal.
+## Roadmap / TODOs
+
+- more tests
+- refactors, fixes
+- piping
+- history
+- variable interpolation
+- job control
+- new functionalities (reference [Bash Reference Manual](https://www.gnu.org/software/bash/manual/bash.html))
+
+## Contributing
+
+Feel free to create issues or submit pull requests!

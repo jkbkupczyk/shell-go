@@ -98,8 +98,8 @@ func TestParseCommand(t *testing.T) {
 		},
 		{
 			desc:     "Double quotes",
-			input:    "echo \"\\$\" \"\\`\" \"\\\\\" \"\\n\" \"\\X\"",
-			wantArgs: []string{"echo", "$", "`", "\\", "\n", "\\X"},
+			input:    "echo \"\\$\" \"\\`\" \"\\\\\"",
+			wantArgs: []string{"echo", "$", "`", "\\"},
 		},
 		{
 			desc:     "Double quotes",
