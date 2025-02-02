@@ -84,7 +84,7 @@ func readLine() (string, flowControl) {
 			break
 		} else if r == 0x9 {
 			value := sb.String()
-			suggestions := listSuggestions(value)
+			suggestions, hasPrefix := listSuggestions(value)
 
 			if printOnNext {
 				fmt.Fprint(os.Stdout, "\r\n", strings.Join(suggestions, "  "), "\r\n", "$ ", value)
@@ -93,6 +93,12 @@ func readLine() (string, flowControl) {
 			}
 
 			if len(suggestions) > 1 {
+				if hasPrefix {
+					for _, v := range strings.TrimPrefix(suggestions[0], value) {
+						writeAndDisplay(v)
+					}
+					continue
+				}
 				printOnNext = true
 				os.Stdout.Write([]byte{'\a'})
 				continue

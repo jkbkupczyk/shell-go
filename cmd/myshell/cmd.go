@@ -49,34 +49,38 @@ func toCmd(in string) (Cmd, error) {
 	}, nil
 }
 
-func listSuggestions(value string) []string {
+func listSuggestions(value string) ([]string, bool) {
 	if value == "" {
-		return []string{}
+		return []string{}, false
 	}
 
 	matching := make([]string, 0)
 	availableCommands := append([]string{CmdExit, CmdEcho, CmdType, CmdPwd, CmdCd}, listPathCommands()...)
 
 	for _, c := range availableCommands {
-		if value == c || strings.HasPrefix(c, value) {
-			if !slices.Contains(matching, c) {
-				matching = append(matching, c)
-			}
+		if (value == c || strings.HasPrefix(c, value)) && !slices.Contains(matching, c) {
+			matching = append(matching, c)
 		}
 	}
 
-	slices.SortFunc(matching, func(left, right string) int {
-		leftLength := len(left)
-		rightLength := len(right)
+	slices.Sort(matching)
 
-		if leftLength != rightLength {
-			return leftLength - rightLength
+	return matching, hasMatchingPrefix(matching)
+}
+
+func hasMatchingPrefix(matched []string) bool {
+	if len(matched) == 0 {
+		return false
+	}
+
+	next := matched[0]
+	for _, c := range matched {
+		if next == c || strings.HasPrefix(c, next) {
+			return true
 		}
+	}
 
-		return strings.Compare(left, right)
-	})
-
-	return matching
+	return false
 }
 
 func cmdExit(stderr io.Writer, args []string) {
