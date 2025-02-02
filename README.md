@@ -11,7 +11,7 @@ echo, type, pwd, cd and more. Includes stdout and stderr redirection and autocom
 - REPL
 - running builtin commands [exit, echo, type, pwd, cd]
 - running external program with arguments
-- support for non quoted single quoted, double quoted
+- support for non quoted, single quoted, double quoted arguments
 - stdout and stder redirection
 - stdout and stderr appending
 - autocompletion
