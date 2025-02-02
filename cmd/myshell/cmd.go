@@ -72,15 +72,16 @@ func hasLongestCommonPrefix(suggestions []string) bool {
 	if len(suggestions) == 0 {
 		return false
 	}
-	if len(suggestions) == 1 {
-		return true
+
+	first := suggestions[0]
+
+	for _, s := range suggestions {
+		if strings.HasPrefix(s, first) && len(s) > len(first) {
+			return true
+		}
 	}
 
-	// suggestions already includes prefix and are already sorted in ASC order
-	first := suggestions[0]
-	last := suggestions[len(suggestions)-1]
-
-	return len(last) == len(first)
+	return false
 }
 
 func cmdExit(stderr io.Writer, args []string) {
