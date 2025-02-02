@@ -73,7 +73,7 @@ func readLine() (string, flowControl) {
 		}
 
 		if r == unicode.ReplacementChar {
-			fmt.Fprintf(os.Stderr, "invalid char input: %v\r\n", err)
+			fmt.Fprint(os.Stderr, "invalid char input")
 			return "", FlowControlExit
 		} else if r == 0x3 || r == 0x4 {
 			return "", FlowControlExit
@@ -83,6 +83,7 @@ func readLine() (string, flowControl) {
 		} else if r == 0x9 {
 			missing, found := suggestMissing(sb.String())
 			if !found {
+				os.Stdout.Write([]byte{'\a'})
 				continue
 			}
 
