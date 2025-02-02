@@ -48,19 +48,21 @@ func toCmd(in string) (Cmd, error) {
 	}, nil
 }
 
-func suggestMissing(value string) (string, bool) {
+func listSuggestions(value string) []string {
 	if value == "" {
-		return "", false
+		return []string{}
 	}
 
+	matching := make([]string, 0)
 	availableCommands := append([]string{CmdExit, CmdEcho, CmdType, CmdPwd, CmdCd}, listPathCommands()...)
+
 	for _, c := range availableCommands {
 		if value == c || strings.HasPrefix(c, value) {
-			return strings.TrimPrefix(c, value), true
+			matching = append(matching, c)
 		}
 	}
 
-	return "", false
+	return matching
 }
 
 func cmdExit(stderr io.Writer, args []string) {

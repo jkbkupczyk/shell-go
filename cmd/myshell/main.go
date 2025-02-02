@@ -65,6 +65,8 @@ func readLine() (string, flowControl) {
 		fmt.Fprint(os.Stdout, string(r))
 	}
 
+	printOnNext := false
+
 	for {
 		r, _, err := reader.ReadRune()
 		if err != nil {
@@ -81,17 +83,32 @@ func readLine() (string, flowControl) {
 			os.Stdout.Write([]byte{'\r', '\n'})
 			break
 		} else if r == 0x9 {
-			missing, found := suggestMissing(sb.String())
-			if !found {
-				os.Stdout.Write([]byte{'\a'})
+			value := sb.String()
+			suggestions := listSuggestions(value)
+
+			if printOnNext {
+				fmt.Fprint(os.Stdout, "\r\n", strings.Join(suggestions, "  "), "\r\n")
+				printOnNext = false
+				fmt.Fprint(os.Stdout, "$ ", value)
 				continue
 			}
 
-			for _, v := range missing {
-				writeAndDisplay(v)
+			if len(suggestions) > 1 {
+				printOnNext = true
+				os.Stdout.Write([]byte{'\a'})
+				continue
 			}
-
-			writeAndDisplay(' ')
+			if len(suggestions) == 1 {
+				for _, v := range strings.TrimPrefix(suggestions[0], value) {
+					writeAndDisplay(v)
+				}
+				writeAndDisplay(' ')
+				continue
+			}
+			if len(suggestions) == 0 {
+				os.Stdout.Write([]byte{'\a'})
+				continue
+			}
 		} else {
 			writeAndDisplay(r)
 		}
