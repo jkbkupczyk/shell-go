@@ -87,9 +87,8 @@ func readLine() (string, flowControl) {
 			suggestions := listSuggestions(value)
 
 			if printOnNext {
-				fmt.Fprint(os.Stdout, "\r\n", strings.Join(suggestions, "  "), "\r\n")
+				fmt.Fprint(os.Stdout, "\r\n", strings.Join(suggestions, "  "), "\r\n", "$ ", value)
 				printOnNext = false
-				fmt.Fprint(os.Stdout, "$ ", value)
 				continue
 			}
 
