@@ -104,8 +104,7 @@ func readLine() (string, flowControl) {
 				continue
 			}
 			if len(suggestions) > 1 {
-				hasPrefix := hasMatchingPrefix(suggestions)
-				if hasPrefix {
+				if hasLongestCommonPrefix(suggestions) {
 					for _, v := range strings.TrimPrefix(suggestions[0], value) {
 						writeAndDisplay(v)
 					}

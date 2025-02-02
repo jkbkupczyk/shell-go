@@ -57,9 +57,9 @@ func listSuggestions(value string) []string {
 	suggestions := make([]string, 0)
 	availableCommands := append([]string{CmdExit, CmdEcho, CmdType, CmdPwd, CmdCd}, listPathCommands()...)
 
-	for _, c := range availableCommands {
-		if (value == c || strings.HasPrefix(c, value)) && !slices.Contains(suggestions, c) {
-			suggestions = append(suggestions, c)
+	for _, cmd := range availableCommands {
+		if (value == cmd || strings.HasPrefix(cmd, value)) && !slices.Contains(suggestions, cmd) {
+			suggestions = append(suggestions, cmd)
 		}
 	}
 
@@ -68,20 +68,19 @@ func listSuggestions(value string) []string {
 	return suggestions
 }
 
-func hasMatchingPrefix(matched []string) bool {
-	if len(matched) == 0 {
+func hasLongestCommonPrefix(suggestions []string) bool {
+	if len(suggestions) == 0 {
 		return false
 	}
-
-	next := matched[0]
-
-	for _, c := range matched {
-		if next == c || strings.HasPrefix(c, next) {
-			return true
-		}
+	if len(suggestions) == 1 {
+		return true
 	}
 
-	return false
+	// suggestions already includes prefix and are already sorted in ASC order
+	first := suggestions[0]
+	last := suggestions[len(suggestions)-1]
+
+	return len(last) == len(first)
 }
 
 func cmdExit(stderr io.Writer, args []string) {
