@@ -14,61 +14,16 @@ import (
 var errNoTargetFd = errors.New("redirect specified but no target file descriptor got")
 
 func main() {
-	fd := int(os.Stdin.Fd())
-	oldState, err := term.MakeRaw(fd)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "could not create term: %v\r\n", err)
-		return
-	}
-	defer term.Restore((fd), oldState)
-
-	var sb strings.Builder
-	reader := bufio.NewReader(os.Stdin)
-
-	writeAndDisplay := func(r rune) {
-		sb.WriteRune(r)
-		fmt.Fprint(os.Stdout, string(r))
-	}
-
 	for {
 		if _, err := fmt.Fprint(os.Stdout, "$ "); err != nil {
 			fmt.Fprintf(os.Stderr, "write error: %v\r\n", err)
 			continue
 		}
 
-		for {
-			r, _, err := reader.ReadRune()
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "could not read character: %v\r\n", err)
-				continue
-			}
-
-			if r == unicode.ReplacementChar {
-				fmt.Fprintf(os.Stderr, "invalid char input: %v\r\n", err)
-				continue
-			} else if r == 0x3 || r == 0x4 {
-				return
-			} else if r == 0x0A || r == 0xD {
-				fmt.Fprintln(os.Stdout)
-				break
-			} else if r == 0x9 {
-				missing, found := suggestMissing(sb.String())
-				if !found {
-					continue
-				}
-
-				for _, v := range missing {
-					writeAndDisplay(v)
-				}
-				
-				writeAndDisplay(' ')
-			} else {
-				writeAndDisplay(r)
-			}
+		input, flowControl := readLine()
+		if flowControl == FlowControlExit {
+			return
 		}
-
-		input := sb.String()
-		sb.Reset()
 
 		command, err := toCmd(strings.TrimSpace(input))
 		if err != nil {
@@ -84,6 +39,64 @@ func main() {
 
 		execCommand(command.Key, args, fdOut, fdErr)
 	}
+}
+
+type flowControl int
+
+const (
+	FlowControlExit flowControl = iota
+	FlowControlOk
+)
+
+func readLine() (string, flowControl) {
+	fd := int(os.Stdin.Fd())
+	oldState, err := term.MakeRaw(fd)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "could not create term: %v\r\n", err)
+		return "", FlowControlExit
+	}
+	defer term.Restore((fd), oldState)
+
+	var sb strings.Builder
+	reader := bufio.NewReader(os.Stdin)
+
+	writeAndDisplay := func(r rune) {
+		sb.WriteRune(r)
+		fmt.Fprint(os.Stdout, string(r))
+	}
+
+	for {
+		r, _, err := reader.ReadRune()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "could not read character: %v\r\n", err)
+			return "", FlowControlExit
+		}
+
+		if r == unicode.ReplacementChar {
+			fmt.Fprintf(os.Stderr, "invalid char input: %v\r\n", err)
+			return "", FlowControlExit
+		} else if r == 0x3 || r == 0x4 {
+			return "", FlowControlExit
+		} else if r == 0x0A || r == 0xD {
+			os.Stdout.Write([]byte{'\r', '\n'})
+			break
+		} else if r == 0x9 {
+			missing, found := suggestMissing(sb.String())
+			if !found {
+				continue
+			}
+
+			for _, v := range missing {
+				writeAndDisplay(v)
+			}
+
+			writeAndDisplay(' ')
+		} else {
+			writeAndDisplay(r)
+		}
+	}
+
+	return sb.String(), FlowControlOk
 }
 
 func execCommand(programName string, args []string, fdOut *os.File, fdErr *os.File) {
@@ -112,7 +125,7 @@ func execCommand(programName string, args []string, fdOut *os.File, fdErr *os.Fi
 	case CmdCd:
 		cmdCd(stderr, args)
 	default:
-		cmdExec(stdout, stderr, programName, args)
+		cmdExec(os.Stdin, stdout, stderr, programName, args)
 	}
 }
 

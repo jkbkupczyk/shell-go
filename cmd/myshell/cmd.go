@@ -124,7 +124,7 @@ func cmdCd(stderr io.Writer, args []string) {
 	}
 }
 
-func cmdExec(stdout io.Writer, stderr io.Writer, execName string, args []string) {
+func cmdExec(stdin io.Reader, stdout io.Writer, stderr io.Writer, execName string, args []string) {
 	filePath := findFile(execName)
 	if filePath == "" {
 		fmt.Fprintf(stdout, "%s: command not found\r\n", execName)
@@ -132,8 +132,9 @@ func cmdExec(stdout io.Writer, stderr io.Writer, execName string, args []string)
 	}
 
 	c := exec.Command(execName, args...)
-	c.Stderr = stderr
+	c.Stdin = stdin
 	c.Stdout = stdout
+	c.Stderr = stderr
 
 	c.Run()
 }
