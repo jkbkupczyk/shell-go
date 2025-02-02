@@ -59,7 +59,9 @@ func listSuggestions(value string) []string {
 
 	for _, c := range availableCommands {
 		if value == c || strings.HasPrefix(c, value) {
-			matching = append(matching, c)
+			if !slices.Contains(matching, c) {
+				matching = append(matching, c)
+			}
 		}
 	}
 
