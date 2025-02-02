@@ -53,7 +53,8 @@ func suggestMissing(value string) (string, bool) {
 		return "", false
 	}
 
-	for _, c := range []string{CmdExit, CmdEcho, CmdType, CmdPwd, CmdCd} {
+	availableCommands := append([]string{CmdExit, CmdEcho, CmdType, CmdPwd, CmdCd}, listPathCommands()...)
+	for _, c := range availableCommands {
 		if value == c || strings.HasPrefix(c, value) {
 			return strings.TrimPrefix(c, value), true
 		}
@@ -160,4 +161,28 @@ func findFile(fileName string) string {
 	}
 
 	return ""
+}
+
+func listPathCommands() []string {
+	pathVal, pathExists := os.LookupEnv("PATH")
+	if !pathExists {
+		return []string{}
+	}
+
+	cmds := make([]string, 0)
+
+	for _, p := range strings.Split(pathVal, string(os.PathListSeparator)) {
+		files, _ := os.ReadDir(p)
+		if len(files) == 0 {
+			continue
+		}
+
+		for _, f := range files {
+			if !f.IsDir() {
+				cmds = append(cmds, f.Name())
+			}
+		}
+	}
+
+	return cmds
 }
