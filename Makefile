@@ -1,3 +1,5 @@
+SHELL = /bin/sh
+
 run: build
 	@./bin/myshell
 
